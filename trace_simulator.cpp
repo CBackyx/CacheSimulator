@@ -4,7 +4,8 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
     traceFileParse(trace_f_name);
 
     this->max_dir_size = CACHE_SIZE / 0x8;
-
+    this->dir_size = 0;
+    
     // The first entry is just a flag, doesn't contain a entry info
     this->dir_head = new LinkEntry;
     this->dir_head->next = this->dir_head;
@@ -175,6 +176,47 @@ int TraceSimulator::doCommands() {
             }
         } else {
             // Full-Associated case
+            uint cnt = 0;
+            bool hit = false;
+            while (cnt < this->dir_size) {
+                LinkEntry *cur = this->dir_head->next;
+                ulong curMM = 0;
+                setBits(curMM, cur->entry_content, 0 , 0, 64);
+                if (curMM == this->addrs[i]) {
+                    ++(this->nb_hit);
+                    deleteEntry(cur);
+                    insertEntry(cur, this->dir_head->prev, this->dir_head);
+                    uint curIndex = 0;
+                    setBits(curIndex, cur->entry_content + 8, 0, 0, 14);
+                    this->cache[curIndex][0] |= 0x1;
+                    this->cache[curIndex][0] |= 0x2;
+                    hit = true;
+                    break;
+                } 
+            }
+            if (!hit) {
+                if (this->dir_size < this->max_dir_size) {
+                    // Insert into the dir
+                    LinkEntry *cur = new LinkEntry;
+                    insertEntry(cur, this->dir_head->prev, this->dir_head);
+                    uint curIndex = 8 * (this->dir_size);
+                    this->cache[curIndex][0] |= 0x1;
+                    this->cache[curIndex][0] &= ~0x2;
+                    setBits(cur->entry_content, this->addrs[i], 0 , 0, 64);
+                    setBits(cur->entry_content + 8, curIndex, 0, 0, 14);
+                    ++(this->dir_size);  
+                } else {
+                    // Replace
+                    LinkEntry *cur = this->dir_head->next;
+                    deleteEntry(cur);
+                    insertEntry(cur, this->dir_head->prev, this->dir_head);
+                    setBits(cur->entry_content, this->addrs[i], 0 , 0, 64);
+                    uint curIndex = 0;
+                    setBits(curIndex, cur->entry_content + 8, 0, 0, 14);
+                    this->cache[curIndex][0] |= 0x1;
+                    this->cache[curIndex][0] &= ~0x2;
+                }
+            }
         }
     }
 

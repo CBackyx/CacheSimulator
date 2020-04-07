@@ -41,7 +41,19 @@ class TraceSimulator {
 struct LinkEntry {
     LinkEntry *prev;
     LinkEntry *next;
-    unsigned char *entry_content; // Includes Main-Memory number, Cache number 
+    unsigned char entry_content[10]; // Includes Main-Memory number, Cache number 
 };
+
+void insertEntry(LinkEntry* cur, LinkEntry* p, LinkEntry* n) {
+    p->next = cur;
+    cur->prev = p;
+    cur->next = n;
+    n->prev = p;
+};
+
+void deleteEntry(LinkEntry* cur) {
+    cur->prev->next = cur->next;
+    cur->next->prev = cur->prev;
+}
 
 #endif

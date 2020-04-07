@@ -7,6 +7,8 @@ class Replacer {
 
     public:
         TraceSimulator *ts;
+        unsigned char *trees;
+        unsigned char **LRU_qs; // The head represents the least recently used entry
 
         Replacer();
         int init();
@@ -16,8 +18,6 @@ class Replacer {
 };
 
 class LRU_Replacer: public Replacer {
-    
-    unsigned char **LRU_qs; // The head represents the least recently used entry
 
     public:
         LRU_Replacer();
@@ -37,8 +37,6 @@ class RANDOM_Replacer: public Replacer {
 };
 
 class BINARY_TREE_Replacer: public Replacer {
-
-    unsigned char *trees;
 
     public:
         BINARY_TREE_Replacer();

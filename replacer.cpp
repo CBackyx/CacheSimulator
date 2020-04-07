@@ -33,7 +33,10 @@ int LRU_Replacer::doReplace(uint index, ulong tag) {
         curc[0] |= 0x1; // Set valid
         curc[0] &= ~(0x2); // Set clean
     } else {
-
+        uchar *curc = (this->ts->cache)[index];
+        setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+        curc[0] |= 0x1; // Set valid
+        curc[0] &= ~(0x2); // Set clean
     }
 
     return 0;
@@ -80,6 +83,74 @@ int BINARY_TREE_Replacer::init() {
         this->trees = new unsigned char [this->ts->cache_line_num];
     } else {
         this->trees = NULL;
+    }
+
+    return 0;
+}
+
+int BINARY_TREE_Replacer::doReplace(uint index, ulong tag) {
+    if (this->ts->way_num == 8) {
+        uint idx = 0;
+        if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
+        else idx = idx * 2 + 1;
+        if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
+        else idx = idx * 2 + 1;
+        if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
+        else idx = idx * 2 + 1;
+        idx -= 7;
+        uchar *curc = (this->ts->cache)[index] + idx * this->ts->entry_size;
+        setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+        curc[0] |= 0x1; // Set valid
+        curc[0] &= ~(0x2); // Set clean
+    } else if (this->ts->way_num == 4) {
+        uint idx = 0;
+        if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
+        else idx = idx * 2 + 1;
+        if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
+        else idx = idx * 2 + 1;
+        idx -= 3;
+        uchar *curc = (this->ts->cache)[index] + idx * this->ts->entry_size;
+        setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+        curc[0] |= 0x1; // Set valid
+        curc[0] &= ~(0x2); // Set clean
+    } else {
+        uchar *curc = (this->ts->cache)[index];
+        setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+        curc[0] |= 0x1; // Set valid
+        curc[0] &= ~(0x2); // Set clean       
+    }
+
+    return 0;
+}
+
+int BINARY_TREE_Replacer::doUpdate(uint index, uint pos) {
+    // I am really not good at binary
+    if (this->ts->way_num == 8) {
+        uint tmp = 7 + pos;
+        uint pos2, pos1, pos0;
+        pos2 = tmp - 1;
+        pos1 = ((tmp >> 1) - 1);
+        pos0 = 0;
+        uchar mask = (1 << pos2) | (1 << pos1) | 1;
+        this->trees[index] |= mask;
+        mask = 0xff;
+        mask ^= (((pos >> 2) & 1) << pos2);
+        mask ^= (((pos >> 1) & 1) << pos1);
+        mask ^= (pos & 1);
+        this->trees[index] &= mask;
+    } else if (this->ts->way_num == 4) {
+        uint tmp = 3 + pos;
+        uint pos1, pos0;
+        pos1 = tmp - 1;
+        pos0 = 0;
+        uchar mask = (1 << pos1) | 1;
+        this->trees[index] |= mask;
+        mask = 0xff;
+        mask ^= (((pos >> 1) & 1) << pos1);
+        mask ^= (pos & 1);
+        this->trees[index] &= mask;
+    } else {
+
     }
 
     return 0;
