@@ -11,6 +11,6 @@
 #include "replacer.h"
 #include "utils.h"
 
-#define CACHE_SIZE 0xa0000
+#define CACHE_SIZE 0x20000
 
 #endif

@@ -23,6 +23,7 @@ int LRU_Replacer::init() {
 
 int LRU_Replacer::doReplace(uint index, ulong tag) {
     if (this->ts->way_num == 8) {
+        // printf("OKKKK\n");
         uint pos = LRU_qs[index][0] & 0x7;
         uchar *curc = (this->ts->cache)[index] + pos * this->ts->entry_size;
         setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
@@ -155,6 +156,10 @@ int BINARY_TREE_Replacer::doUpdate(uint index, uint pos) {
 
     }
 
+    return 0;
+}
+
+int RANDOM_Replacer::init() {
     return 0;
 }
 

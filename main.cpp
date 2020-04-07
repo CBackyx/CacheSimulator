@@ -7,7 +7,7 @@ using namespace std;
 
 // The arguments are: tracefile name, block size, replacement policy, write policy, origanization  
 int main(int argc, char *argv[]) {
-    if (argc != 5) {
+    if (argc != 6) {
         printf("Invalid argument number!\n");
         exit(-1);
     } else {

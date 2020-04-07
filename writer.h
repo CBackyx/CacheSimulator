@@ -10,8 +10,8 @@ typedef unsigned long long ulong;
 class Writer {
     public:
         TraceSimulator *ts;
-        int doWrite(uint index, uint pos) {}
-        int doMissingWrite(uint index, ulong curTag) {}
+        virtual int doWrite(uint index, uint pos) {}
+        virtual int doMissingWrite(uint index, ulong curTag) {}
 
         Writer() {}
         ~Writer() {}
@@ -19,7 +19,6 @@ class Writer {
 
 class ALLOC_THROUGH_Writer: public Writer {
     public:
-        TraceSimulator *ts;
         int doWrite(uint index, uint pos);
         int doMissingWrite(uint index, ulong curTag);
 
@@ -29,7 +28,6 @@ class ALLOC_THROUGH_Writer: public Writer {
 
 class ALLOC_BACK_Writer: public Writer {
     public:
-        TraceSimulator *ts;
         int doWrite(uint index, uint pos);
         int doMissingWrite(uint index, ulong curTag);
 
@@ -39,7 +37,6 @@ class ALLOC_BACK_Writer: public Writer {
 
 class UNALLOC_THROUGH_Writer: public Writer {
     public:
-        TraceSimulator *ts;
         int doWrite(uint index, uint pos);
         int doMissingWrite(uint index, ulong curTag);
 
@@ -49,7 +46,6 @@ class UNALLOC_THROUGH_Writer: public Writer {
 
 class UNALLOC_BACK_Writer: public Writer {
     public:
-        TraceSimulator *ts;
         int doWrite(uint index, uint pos);
         int doMissingWrite(uint index, ulong curTag);
 

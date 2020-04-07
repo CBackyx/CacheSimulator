@@ -12,9 +12,9 @@ class Replacer {
         unsigned int LRU_length;
 
         Replacer() {}
-        int init() {}
-        int doReplace(uint index, ulong tag) {}
-        int doUpdate(uint index, uint pos) {}
+        virtual int init() {}
+        virtual int doReplace(uint index, ulong tag) {}
+        virtual int doUpdate(uint index, uint pos) {}
         ~Replacer() {
             if (trees != NULL) delete []trees;
             if (LRU_qs != NULL) {

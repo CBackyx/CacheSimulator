@@ -9,7 +9,7 @@ SRCS = $(wildcard *.cpp)
 OBJS = $(patsubst %cpp, %o, $(SRCS))
 
 # 可执行文件的名字
-TARGET = cacheSimulator.exe
+TARGET = cs.exe
 
 # .PHONE伪目标，具体含义百度一下一大堆介绍
 .PHONY:all clean

@@ -1,6 +1,8 @@
 #include "headers.h"
 
 TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
+    this->addrs = new unsigned long long[600000];
+    this->is_read = new bool[600000];
     traceFileParse(trace_f_name);
 
     this->max_dir_size = CACHE_SIZE / 0x8;
@@ -72,6 +74,7 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->cache = new unsigned char *[(int)this->cache_line_num];
             this->meta_size = 1;
             this->way_num = 1;
+            this->offset_bit_width = 0;
             this->entry_size = this->meta_size + this->bs;
             for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)this->entry_size];
             break;
@@ -116,43 +119,62 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
 
     this->r->ts = this;
     this->r->init();
+    this->w->ts = this;
 }
 
 int TraceSimulator::traceFileParse(char *fname) {
+    printf("h2\n");
     FILE *fp;
     fp = fopen(fname, "r");
     if (fp == NULL) return -1; 
     int cnt = 0;
     char tmp = 0;
     char read = 'r';
+    unsigned long long tr = 0;
+    printf("h3\n");
     while (fscanf(fp, "%c", &tmp) != EOF) {
-        if (tmp == read) this->is_read[cnt] = true;
-        fscanf(fp, "0x%x", &this->addrs[cnt]);
+        if (tmp == read) {
+            this->is_read[cnt] = true;
+            // printf("r ");
+        }
+        fscanf(fp, "%llx", &this->addrs[cnt]);
+        fscanf(fp, "%llx", tr);
+        // printf("%llx\n", this->addrs[cnt]);
         cnt++;
     }
+    
+    printf("%d\n", cnt);
     this->nb_commands = cnt;
     // Check if correctly read
-    printf("0x%x", this->addrs[0]);
+    printf("%llx\n", this->addrs[0]);
     fclose(fp);
     return 0;
 }
 
 int TraceSimulator::doCommands() {
+    printf("h4\n");
+    printf("%d %d %d\n", this->way_num, this->index_bit_width, this->offset_bit_width);
     for (int i = 0; i < this->nb_commands; ++i) {
-        if (!this->meta_size == 1) {
+        // printf("%d\n", i);
+        if (this->meta_size != 1) {
+            // printf("h5\n");
             uint curIndex = 0;
             ulong curTag = 0;
             setBits(curIndex, this->addrs[i], (uint)0, (uint)this->offset_bit_width, (uint)this->index_bit_width);
             setBits(curTag, this->addrs[i], (uint)0, (uint)(this->offset_bit_width + this->index_bit_width), this->tag_bit_width);
+            // printf("curIndex: %d\n", curIndex);
+            // printf("curTag: %llx\n", curTag);
             uint cnt = 0;
             ulong tmpl = 0;
-            uchar *tmpc = this->cache[i];
+            uchar *tmpc = this->cache[curIndex];
             bool hit = false;
             while (cnt < this->way_num) {
                 tmpl = 0;
                 if (tmpc[0] & 1) {
                     setBits(tmpl, tmpc, 0, 2, this->tag_bit_width);
+                    // printf("%llx\n", tmpl);
                     if (curTag == tmpl) {
+                        // printf("halo\n");
                         hit = true;
                         ++(this->nb_hit);
                         if (this->is_read[i]) {
@@ -168,9 +190,11 @@ int TraceSimulator::doCommands() {
             }
             if (!hit) {
                 if (this->is_read[i]) {
+                    // printf("h6\n");
                     this->r->doReplace(curIndex, curTag); // Replacement including an update operation
                     this->r->doUpdate(curIndex, 0);
                 } else {
+                    // printf("h7\n");
                     this->w->doMissingWrite(curIndex, curTag); // Do missing write
                 }
             }
@@ -220,7 +244,7 @@ int TraceSimulator::doCommands() {
         }
     }
 
-    printf("The missing rate is: %lf", (double)this->nb_hit / this->nb_commands);
+    printf("The hiting rate is: %lf", ((double)this->nb_hit) / this->nb_commands);
     return 0;
 }
 

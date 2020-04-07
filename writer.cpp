@@ -29,6 +29,7 @@ int UNALLOC_BACK_Writer::doWrite(uint index, uint pos) {
 }
 
 int ALLOC_THROUGH_Writer::doMissingWrite(uint index, ulong curTag) {
+    // printf("h8\n");
     this->ts->r->doReplace(index, curTag);
     this->ts->r->doUpdate(index, 0); // Update the LRU stack
     return 0;
