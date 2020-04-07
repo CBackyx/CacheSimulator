@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
         sscanf(argv[4], "%ud", &parse_args[2]);
         sscanf(argv[5], "%ud", &parse_args[3]);
         TraceSimulator ts = *new TraceSimulator(argv[1], parse_args);
-        ts.doCommand();
+        ts.doCommands();
     }
     
     return 0;

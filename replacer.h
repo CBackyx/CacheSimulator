@@ -1,7 +1,7 @@
-#ifndef HEADER_H
-#define HEADER_h
+#ifndef REPLACER_H
+#define REPLACER_H
 
-#include "trace_simulator.h"
+class TraceSimulator;
 
 class Replacer { 
 
@@ -9,41 +9,48 @@ class Replacer {
         TraceSimulator *ts;
         unsigned char *trees;
         unsigned char **LRU_qs; // The head represents the least recently used entry
+        unsigned int LRU_length;
 
-        Replacer();
-        int init();
-        int doReplace(uint index, ulong tag);
-        int doUpdate(uint index, uint pos);
-        ~Replacer();
+        Replacer() {}
+        int init() {}
+        int doReplace(uint index, ulong tag) {}
+        int doUpdate(uint index, uint pos) {}
+        ~Replacer() {
+            if (trees != NULL) delete []trees;
+            if (LRU_qs != NULL) {
+                for (int i = 0; i < this->LRU_length; ++i) delete []LRU_qs[i];
+                delete []LRU_qs;
+            }
+        }
 };
 
 class LRU_Replacer: public Replacer {
 
     public:
-        LRU_Replacer();
+        LRU_Replacer() {}
         int init();
         int doReplace(uint index, ulong tag); // Index of the cache line
         int doUpdate(uint index, uint pos);
-        ~LRU_Replacer();
+        ~LRU_Replacer() {}
 };
 
 class RANDOM_Replacer: public Replacer {
     public:
-        RANDOM_Replacer();
+        RANDOM_Replacer() {}
         int init();
         int doReplace(uint index, ulong tag);
         int doUpdate(uint index, uint pos);
-        ~RANDOM_Replacer();
+        ~RANDOM_Replacer() {}
 };
 
 class BINARY_TREE_Replacer: public Replacer {
 
     public:
-        BINARY_TREE_Replacer();
+        BINARY_TREE_Replacer() {}
         int init();
         int doReplace(uint index, ulong tag);
         int doUpdate(uint index, uint pos);
-        ~BINARY_TREE_Replacer();
+        ~BINARY_TREE_Replacer() {}
 };
 
 #endif

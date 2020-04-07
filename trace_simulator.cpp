@@ -69,15 +69,15 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
     switch (p_args[3]) {
         case FULL_ASS:
             this->cache_line_num = CACHE_SIZE / this->bs;
-            this->cache = new unsigned char *[this->cache_line_num];
+            this->cache = new unsigned char *[(int)this->cache_line_num];
             this->meta_size = 1;
             this->way_num = 1;
             this->entry_size = this->meta_size + this->bs;
-            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[this->entry_size];
+            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)this->entry_size];
             break;
         case ONE_WAY:
             this->cache_line_num = CACHE_SIZE / this->bs;
-            this->cache = new unsigned char *[this->cache_line_num];
+            this->cache = new unsigned char *[(int)this->cache_line_num];
             // Add 1 byte for valid bit and dirty bit, doesn't need a tag
             this->way_num = 1;
             this->offset_bit_width = 0;
@@ -85,29 +85,29 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
             this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
             this->entry_size = this->meta_size + this->bs;
-            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[this->entry_size];
+            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)this->entry_size];
             break;
         case FOUR_WAY:
             this->cache_line_num = CACHE_SIZE / (this->bs * 4);
-            this->cache = new unsigned char *[this->cache_line_num];
+            this->cache = new unsigned char *[(int)this->cache_line_num];
             this->way_num = 4;
             this->offset_bit_width = 2;
             this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
             this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
             this->entry_size = this->meta_size + this->bs;
-            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[this->entry_size * this->way_num];
+            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)(this->entry_size * this->way_num)];
             break;
         case EIGHT_WAY:
             this->cache_line_num = CACHE_SIZE / (this->bs * 8);
-            this->cache = new unsigned char *[this->cache_line_num];
+            this->cache = new unsigned char *[(int)this->cache_line_num];
             this->way_num = 8;
             this->offset_bit_width = 3;
             this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
             this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
             this->entry_size = this->meta_size + this->bs;
-            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[this->entry_size * this->way_num];
+            for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)(this->entry_size * this->way_num)];
             break;
         default:
             printf("Invalid Organization!");
@@ -222,4 +222,16 @@ int TraceSimulator::doCommands() {
 
     printf("The missing rate is: %lf", (double)this->nb_hit / this->nb_commands);
     return 0;
+}
+
+void insertEntry(LinkEntry* cur, LinkEntry* p, LinkEntry* n) {
+    p->next = cur;
+    cur->prev = p;
+    cur->next = n;
+    n->prev = p;
+};
+
+void deleteEntry(LinkEntry* cur) {
+    cur->prev->next = cur->next;
+    cur->next->prev = cur->prev;
 }

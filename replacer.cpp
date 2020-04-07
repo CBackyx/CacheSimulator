@@ -2,13 +2,15 @@
 
 int LRU_Replacer::init() {
     if (this->ts->way_num == 8) {
-        this->LRU_qs = new unsigned char *[this->ts->cache_line_num];
+        this->LRU_qs = new unsigned char *[(int)this->ts->cache_line_num];
+        this->LRU_length = this->ts->cache_line_num;
         for (int i = 0; i < this->ts->cache_line_num; ++i) {
             this->LRU_qs[i] = new unsigned char[3];
             for (int j = 0; j < 8; ++j) setBits(LRU_qs[i], (uint)j, (uint)j*3, (uint)0, (uint)3);
         }
     } else if (this->ts->way_num == 4) {
-        this->LRU_qs = new unsigned char *[this->ts->cache_line_num];
+        this->LRU_qs = new unsigned char *[(int)this->ts->cache_line_num];
+        this->LRU_length = this->ts->cache_line_num;
         for (int i = 0; i < this->ts->cache_line_num; ++i) {
             this->LRU_qs[i] = new unsigned char[1];
             for (int j = 0; j < 4; ++j) setBits(LRU_qs[i], (uint)j, (uint)j*2, (uint)0, (uint)2);
@@ -80,7 +82,7 @@ int LRU_Replacer::doUpdate(uint index, uint pos) {
 
 int BINARY_TREE_Replacer::init() {
     if (this->ts->way_num == 8 || this->ts->way_num == 4) {
-        this->trees = new unsigned char [this->ts->cache_line_num];
+        this->trees = new unsigned char [(int)this->ts->cache_line_num];
     } else {
         this->trees = NULL;
     }
@@ -153,6 +155,19 @@ int BINARY_TREE_Replacer::doUpdate(uint index, uint pos) {
 
     }
 
+    return 0;
+}
+
+int RANDOM_Replacer::doReplace(uint index, ulong tag) {
+    uint pos = rand() % this->ts->way_num;
+    uchar *curc = (this->ts->cache)[index] + pos * this->ts->entry_size;
+    setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+    curc[0] |= 0x1; // Set valid
+    curc[0] &= ~(0x2); // Set clean
+    return 0;
+}
+
+int RANDOM_Replacer::doUpdate(uint index, uint pos) {
     return 0;
 }
 

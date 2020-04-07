@@ -22,7 +22,7 @@ void setBits(uchar *target, uchar *source, uint t_begin, uint s_begin, uint num)
     return;
 }
 
-void setBits(uchar *target, ulong &source, uint t_begin, uint s_begin, uint num) {
+void setBits(uchar *target, ulong source, uint t_begin, uint s_begin, uint num) {
     BitPos tp;
 
     while (num > 0) {
@@ -60,7 +60,7 @@ void setBits(ulong &target, uchar *source, uint t_begin, uint s_begin, uint num)
     return;
 }
 
-void setBits(uchar *target, uint &source, uint t_begin, uint s_begin, uint num) {
+void setBits(uchar *target, uint source, uint t_begin, uint s_begin, uint num) {
     BitPos tp;
 
     while (num > 0) {
@@ -98,7 +98,7 @@ void setBits(uint &target, uchar *source, uint t_begin, uint s_begin, uint num) 
     return;
 }
 
-void setBits(ulong &target, ulong &source, uint t_begin, uint s_begin, uint num) {
+void setBits(ulong &target, ulong source, uint t_begin, uint s_begin, uint num) {
     while (num > 0) {
         if ((source >> s_begin) & 1) {
             target |= (1 << t_begin);
@@ -113,7 +113,7 @@ void setBits(ulong &target, ulong &source, uint t_begin, uint s_begin, uint num)
     return;
 }
 
-void setBits(uint &target, ulong &source, uint t_begin, uint s_begin, uint num) {
+void setBits(uint &target, ulong source, uint t_begin, uint s_begin, uint num) {
     while (num > 0) {
         if ((source >> s_begin) & 1) {
             target |= (1 << t_begin);

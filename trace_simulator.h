@@ -1,7 +1,16 @@
 #ifndef TRACE_SIMULATOR
 #define TRACE_SIMULATOR
 
-#include "headers.h"
+class Replacer;
+class Writer;
+struct LinkEntry;
+
+// This struct is only used for LRU Directory for Full-Associated origanization
+struct LinkEntry {
+    LinkEntry *prev;
+    LinkEntry *next;
+    unsigned char entry_content[10]; // Includes Main-Memory number, Cache number 
+};
 
 class TraceSimulator {
     
@@ -32,28 +41,27 @@ class TraceSimulator {
         unsigned int nb_hit;
 
         TraceSimulator(char *trace_f_name, unsigned int *p_args);
-        ~TraceSimulator();
+        ~TraceSimulator() {
+            if (addrs != NULL) delete []addrs;
+            if (is_read != NULL) delete []is_read;
+            if (cache != NULL) {
+                for (int i = 0; i < this->cache_line_num; ++i) delete []cache[i];
+                delete []cache;
+            }
+            LinkEntry *cur = dir_head;
+            while (cur->next != dir_head) {
+                LinkEntry *p = cur;
+                cur = cur->next;
+                delete p;
+            }
+            delete cur;
+        }
+
         int traceFileParse(char *trace_f_name);
         int doCommands();
 };
 
-// This struct is only used for LRU Directory for Full-Associated origanization
-struct LinkEntry {
-    LinkEntry *prev;
-    LinkEntry *next;
-    unsigned char entry_content[10]; // Includes Main-Memory number, Cache number 
-};
-
-void insertEntry(LinkEntry* cur, LinkEntry* p, LinkEntry* n) {
-    p->next = cur;
-    cur->prev = p;
-    cur->next = n;
-    n->prev = p;
-};
-
-void deleteEntry(LinkEntry* cur) {
-    cur->prev->next = cur->next;
-    cur->next->prev = cur->prev;
-}
+void insertEntry(LinkEntry* cur, LinkEntry* p, LinkEntry* n);
+void deleteEntry(LinkEntry* cur);
 
 #endif
