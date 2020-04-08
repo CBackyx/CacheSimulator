@@ -7,8 +7,8 @@ struct LinkEntry;
 
 // This struct is only used for LRU Directory for Full-Associated origanization
 struct LinkEntry {
-    LinkEntry *prev;
-    LinkEntry *next;
+    unsigned int prev;
+    unsigned int next;
     unsigned char entry_content[10]; // Includes Main-Memory number, Cache number 
 };
 
@@ -19,6 +19,7 @@ class TraceSimulator {
         Replacer *r;
         Writer *w;
         unsigned int bs;
+        FILE *cur_file;
 
         unsigned long long *addrs;
         unsigned int nb_commands;
@@ -26,7 +27,9 @@ class TraceSimulator {
 
         unsigned char **cache; 
         
-        LinkEntry *dir_head; // LRU Directory used for Full-Associated organization
+        LinkEntry *dir_resources;
+        unsigned int resources_now;
+        unsigned int dir_head; // LRU Directory used for Full-Associated organization
         unsigned int addr_len;
         unsigned int dir_entry_content_size;
 
@@ -51,20 +54,14 @@ class TraceSimulator {
                 for (int i = 0; i < this->cache_line_num; ++i) delete []cache[i];
                 delete []cache;
             }
-            LinkEntry *cur = dir_head;
-            while (cur->next != dir_head) {
-                LinkEntry *p = cur;
-                cur = cur->next;
-                delete p;
-            }
-            delete cur;
+            if (dir_resources != NULL) delete []dir_resources;
         }
 
         int traceFileParse(char *trace_f_name);
         int doCommands();
 };
 
-void insertEntry(LinkEntry* cur, LinkEntry* p, LinkEntry* n);
-void deleteEntry(LinkEntry* cur);
+void insertEntry(LinkEntry *s, unsigned int cur, unsigned int p, unsigned int n);
+void deleteEntry(LinkEntry *s, unsigned int cur);
 
 #endif

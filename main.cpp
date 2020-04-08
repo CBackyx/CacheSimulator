@@ -19,8 +19,31 @@ int main(int argc, char *argv[]) {
 
         srand(0);
 
-        TraceSimulator ts = *new TraceSimulator(argv[1], parse_args);
+        TraceSimulator &ts = *new TraceSimulator(argv[1], parse_args);
         ts.doCommands();
+        delete &ts;
+
+        // parse_args[0] = 8;
+        // parse_args[1] = 0;
+        // parse_args[2] = 1;
+        // parse_args[3] = 8;
+
+        // string files[] = {"astar.trace", "bzip2.trace", "mcf.trace", "perlbench.trace"};
+        // string tail = "_log";
+        // for (int i = 0; i < 4; ++i) {
+        //     char curfile[20];
+        //     strcpy(curfile, files[i].c_str());
+        //     TraceSimulator *ts = new TraceSimulator(curfile, parse_args);
+        //     FILE *fp;
+        //     fp = fopen((files[i] + tail).c_str(), "w");
+        //     printf(curfile);
+        //     ts->cur_file = fp;
+        //     ts->doCommands();
+        //     fclose(fp);
+        //     delete ts;
+        // }
+        // string str_LRU = "LRU_";
+
     }
     
     return 0;

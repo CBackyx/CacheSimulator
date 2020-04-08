@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <math.h>
+#include <string.h>
 
 #include "main.h"
 #include "trace_simulator.h"
