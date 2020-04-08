@@ -27,6 +27,9 @@ class TraceSimulator {
         unsigned char **cache; 
         
         LinkEntry *dir_head; // LRU Directory used for Full-Associated organization
+        unsigned int addr_len;
+        unsigned int dir_entry_content_size;
+
         unsigned int dir_size;
         unsigned int max_dir_size; 
 

@@ -5,8 +5,8 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
     this->is_read = new bool[600000];
     traceFileParse(trace_f_name);
 
-    this->max_dir_size = CACHE_SIZE / 0x8;
     this->dir_size = 0;
+    this->addr_len = 0;
     
     // The first entry is just a flag, doesn't contain a entry info
     this->dir_head = new LinkEntry;
@@ -74,8 +74,12 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->cache = new unsigned char *[(int)this->cache_line_num];
             this->meta_size = 1;
             this->way_num = 1;
-            this->offset_bit_width = 0;
+            this->offset_bit_width = ceil(log(this->bs) / log(2));
+            this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
+            this->tag_bit_width = 64 - this->offset_bit_width;
+            this->dir_entry_content_size = ceil(log(this->tag_bit_width + this->index_bit_width) / log(2));
             this->entry_size = this->meta_size + this->bs;
+            this->addr_len = this->bs * 8;
             for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)this->entry_size];
             break;
         case ONE_WAY:
@@ -83,10 +87,10 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->cache = new unsigned char *[(int)this->cache_line_num];
             // Add 1 byte for valid bit and dirty bit, doesn't need a tag
             this->way_num = 1;
-            this->offset_bit_width = 0;
-            this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
+            this->offset_bit_width = ceil(log(this->bs) / log(2));
+            this->index_bit_width =ceil(log(this->cache_line_num) / log(2));
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
-            this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
+            this->meta_size = ((2 + this->tag_bit_width) >> 3) + 1;
             this->entry_size = this->meta_size + this->bs;
             for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)this->entry_size];
             break;
@@ -94,10 +98,10 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->cache_line_num = CACHE_SIZE / (this->bs * 4);
             this->cache = new unsigned char *[(int)this->cache_line_num];
             this->way_num = 4;
-            this->offset_bit_width = 2;
+            this->offset_bit_width = ceil(log(this->bs) / log(2));
             this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
-            this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
+            this->meta_size = ((2 + this->tag_bit_width) >> 3) + 1;
             this->entry_size = this->meta_size + this->bs;
             for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)(this->entry_size * this->way_num)];
             break;
@@ -105,10 +109,14 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
             this->cache_line_num = CACHE_SIZE / (this->bs * 8);
             this->cache = new unsigned char *[(int)this->cache_line_num];
             this->way_num = 8;
-            this->offset_bit_width = 3;
+            this->offset_bit_width = ceil(log(this->bs) / log(2));
+            printf("offset %d\n",this->offset_bit_width);
             this->index_bit_width = ceil(log(this->cache_line_num) / log(2));
+            printf("index %d\n",this->index_bit_width);
             this->tag_bit_width = 64 - this->offset_bit_width - this->index_bit_width;
-            this->meta_size = ceil((2 + 64 - log(cache_line_num * this->way_num) / log(2)) / 8);
+            printf("tag %d\n",this->tag_bit_width);
+            this->meta_size = ((2 + this->tag_bit_width) >> 3) + 1;
+            printf("meta %d\n",this->meta_size);
             this->entry_size = this->meta_size + this->bs;
             for (int i = 0; i < this->cache_line_num; ++i) this->cache[i] = new unsigned char[(int)(this->entry_size * this->way_num)];
             break;
@@ -120,6 +128,7 @@ TraceSimulator::TraceSimulator(char *trace_f_name, unsigned int *p_args) {
     this->r->ts = this;
     this->r->init();
     this->w->ts = this;
+    this->max_dir_size = this->cache_line_num;
 }
 
 int TraceSimulator::traceFileParse(char *fname) {
@@ -152,10 +161,10 @@ int TraceSimulator::traceFileParse(char *fname) {
 }
 
 int TraceSimulator::doCommands() {
-    printf("h4\n");
-    printf("%d %d %d\n", this->way_num, this->index_bit_width, this->offset_bit_width);
+    // printf("h4\n");
+    // printf("%d %d %d\n", this->way_num, this->index_bit_width, this->offset_bit_width);
     for (int i = 0; i < this->nb_commands; ++i) {
-        // printf("%d\n", i);
+        if ((i & 0x4ff) == 0) printf("%d\n", i);
         if (this->meta_size != 1) {
             // printf("h5\n");
             uint curIndex = 0;
@@ -164,17 +173,38 @@ int TraceSimulator::doCommands() {
             setBits(curTag, this->addrs[i], (uint)0, (uint)(this->offset_bit_width + this->index_bit_width), this->tag_bit_width);
             // printf("curIndex: %d\n", curIndex);
             // printf("curTag: %llx\n", curTag);
+            // if (curIndex == 0x0ff) {
+            //     printf("%llx ", curTag);
+            //     if (this->is_read[i]) printf("r\n");
+            //     else printf("w\n");
+            // }
             uint cnt = 0;
             ulong tmpl = 0;
             uchar *tmpc = this->cache[curIndex];
+            // if (curIndex == 0x0ff) {
+            //     printf("current LRU queue: ");
+            //     uint curOrder[8];
+            //     for (int k = 0; k < 8; ++k) {
+            //         curOrder[k] = 0;
+            //         setBits(curOrder[k], this->r->LRU_qs[curIndex], 0, k*3, 3);
+            //         printf("%d ", curOrder[k]);
+            //     }
+            //     printf("\n");
+            // }
             bool hit = false;
             while (cnt < this->way_num) {
                 tmpl = 0;
                 if (tmpc[0] & 1) {
                     setBits(tmpl, tmpc, 0, 2, this->tag_bit_width);
-                    // printf("%llx\n", tmpl);
+                    // if (curIndex == 0x0ff) printf("%d + %llx ", cnt , tmpl);
                     if (curTag == tmpl) {
+                        // if (cnt != 0) printf("cnt: %d\n", cnt);
+                        // printf("%llx\n", tmpl);
                         // printf("halo\n");
+                        // if (curIndex == 0x0ff) {
+                        //     printf("Hit!!!: way is %d", cnt);
+                        //     printf("\n");
+                        // }
                         hit = true;
                         ++(this->nb_hit);
                         if (this->is_read[i]) {
@@ -188,11 +218,20 @@ int TraceSimulator::doCommands() {
                 tmpc += this->entry_size;
                 ++cnt;
             }
+
+            // if (curIndex == 0xff) printf("\n");
             if (!hit) {
+                // if (curIndex == 0x0ff) {
+                //     printf("Miss : "); 
+                // }
+
                 if (this->is_read[i]) {
                     // printf("h6\n");
-                    this->r->doReplace(curIndex, curTag); // Replacement including an update operation
-                    this->r->doUpdate(curIndex, 0);
+                    // Replacement including an update operation
+
+                    uint replaced = this->r->doReplace(curIndex, curTag);
+                    // if (curIndex == 0x0ff) printf("%d replaced\n", replaced);
+                    this->r->doUpdate(curIndex, replaced);
                 } else {
                     // printf("h7\n");
                     this->w->doMissingWrite(curIndex, curTag); // Do missing write
@@ -200,43 +239,51 @@ int TraceSimulator::doCommands() {
             }
         } else {
             // Full-Associated case
+            // printf("h5\n");
             uint cnt = 0;
             bool hit = false;
+            LinkEntry *cur = this->dir_head->next;
             while (cnt < this->dir_size) {
-                LinkEntry *cur = this->dir_head->next;
                 ulong curMM = 0;
-                setBits(curMM, cur->entry_content, 0 , 0, 64);
-                if (curMM == this->addrs[i]) {
+                ulong curTag = 0;
+                setBits(curTag, this->addrs[i], (uint)0, (uint)(this->offset_bit_width), this->tag_bit_width);
+                setBits(curMM, cur->entry_content, 0 , 0, this->tag_bit_width);
+                if (curMM == curTag) {
+                    // printf("h7\n");
                     ++(this->nb_hit);
                     deleteEntry(cur);
                     insertEntry(cur, this->dir_head->prev, this->dir_head);
                     uint curIndex = 0;
-                    setBits(curIndex, cur->entry_content + 8, 0, 0, 14);
+                    setBits(curIndex, cur->entry_content, 0, this->tag_bit_width, this->index_bit_width);
                     this->cache[curIndex][0] |= 0x1;
-                    this->cache[curIndex][0] |= 0x2;
+                    if (this->is_read[i]) this->cache[curIndex][0] |= 0x2;
                     hit = true;
                     break;
                 } 
+                cur = cur->next;
+                ++cnt;
             }
             if (!hit) {
+                // printf("h6\n");
                 if (this->dir_size < this->max_dir_size) {
                     // Insert into the dir
                     LinkEntry *cur = new LinkEntry;
                     insertEntry(cur, this->dir_head->prev, this->dir_head);
-                    uint curIndex = 8 * (this->dir_size);
+                    uint curIndex = (this->dir_size);
                     this->cache[curIndex][0] |= 0x1;
                     this->cache[curIndex][0] &= ~0x2;
-                    setBits(cur->entry_content, this->addrs[i], 0 , 0, 64);
-                    setBits(cur->entry_content + 8, curIndex, 0, 0, 14);
+                    setBits(cur->entry_content, this->addrs[i], 0 , (uint)(this->offset_bit_width), this->tag_bit_width);
+                    setBits(cur->entry_content, curIndex, (uint)this->tag_bit_width, 0, this->index_bit_width);
                     ++(this->dir_size);  
                 } else {
                     // Replace
                     LinkEntry *cur = this->dir_head->next;
                     deleteEntry(cur);
                     insertEntry(cur, this->dir_head->prev, this->dir_head);
-                    setBits(cur->entry_content, this->addrs[i], 0 , 0, 64);
+                    setBits(cur->entry_content, this->addrs[i], 0 , (uint)(this->offset_bit_width), this->tag_bit_width);
                     uint curIndex = 0;
-                    setBits(curIndex, cur->entry_content + 8, 0, 0, 14);
+                    // printf("%d\n", curIndex);
+                    setBits(curIndex, cur->entry_content, 0, (uint)this->tag_bit_width, this->index_bit_width);
                     this->cache[curIndex][0] |= 0x1;
                     this->cache[curIndex][0] &= ~0x2;
                 }
@@ -244,7 +291,7 @@ int TraceSimulator::doCommands() {
         }
     }
 
-    printf("The hiting rate is: %lf", ((double)this->nb_hit) / this->nb_commands);
+    printf("The hiting rate is: %lf", 1.0 - ((double)this->nb_hit) / this->nb_commands);
     return 0;
 }
 

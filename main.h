@@ -23,7 +23,7 @@ enum WritePolicy {
     UNALLOC_BACK
 };
 
-// Origanization
+// Organization
 enum Origanization {
     FULL_ASS,
     ONE_WAY = 1,

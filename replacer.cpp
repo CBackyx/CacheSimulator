@@ -8,6 +8,7 @@ int LRU_Replacer::init() {
             this->LRU_qs[i] = new unsigned char[3];
             for (int j = 0; j < 8; ++j) setBits(LRU_qs[i], (uint)j, (uint)j*3, (uint)0, (uint)3);
         }
+        // printf("LRU_qs : %x\n", this->LRU_qs[0][1]);
     } else if (this->ts->way_num == 4) {
         this->LRU_qs = new unsigned char *[(int)this->ts->cache_line_num];
         this->LRU_length = this->ts->cache_line_num;
@@ -21,16 +22,23 @@ int LRU_Replacer::init() {
     return 0;
 }
 
-int LRU_Replacer::doReplace(uint index, ulong tag) {
+int LRU_Replacer::doReplace(uint index, ulong tag) { 
+    uint pos = 0;
     if (this->ts->way_num == 8) {
         // printf("OKKKK\n");
-        uint pos = LRU_qs[index][0] & 0x7;
+        pos = (LRU_qs[index][0] & 0x7);
         uchar *curc = (this->ts->cache)[index] + pos * this->ts->entry_size;
+        // if (index == 0x0ff) printf("original tag %llx \n",tag);
         setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
+        // if (index == 0x0ff) {
+        //     ulong testTag = 0;
+        //     setBits(testTag, curc, 0, 2, this->ts->tag_bit_width);
+        //     printf("Get test tag %llx \n", testTag);
+        // }
         curc[0] |= 0x1; // Set valid
         curc[0] &= ~(0x2); // Set clean
     } else if (this->ts->way_num == 4) {
-        uint pos = LRU_qs[index][0] & 0x3;
+        pos = (LRU_qs[index][0] & 0x3);
         uchar *curc = (this->ts->cache)[index] + pos * this->ts->entry_size;
         setBits(curc, tag, 2, 0, this->ts->tag_bit_width);
         curc[0] |= 0x1; // Set valid
@@ -42,7 +50,7 @@ int LRU_Replacer::doReplace(uint index, ulong tag) {
         curc[0] &= ~(0x2); // Set clean
     }
 
-    return 0;
+    return pos;
 }
 
 int LRU_Replacer::doUpdate(uint index, uint pos) {
@@ -52,28 +60,28 @@ int LRU_Replacer::doUpdate(uint index, uint pos) {
             curOrder[i] = 0;
             setBits(curOrder[i], this->LRU_qs[index], 0, i*3, 3);
         }
-        setBits(this->LRU_qs[index], curOrder[pos], 0, 0, 3);
-        uint cnt = 1;
+        uint cnt = 0;
         for (int i = 0; i < 8; ++i) {
-            if (i != pos) {
-                setBits(this->LRU_qs[index], curOrder[pos], 3*cnt, 0, 3);
+            if (curOrder[i] != pos) {
+                setBits(this->LRU_qs[index], curOrder[i], 3*cnt, 0, 3);
                 ++cnt;
             }
         }
+        setBits(this->LRU_qs[index], pos, 21, 0, 3);
     } else if (this->ts->way_num == 4) {
         uint curOrder[4];
         for (int i = 0; i < 4; ++i) {
             curOrder[i] = 0;
             setBits(curOrder[i], this->LRU_qs[index], 0, i*2, 2);
         }
-        setBits(this->LRU_qs[index], curOrder[pos], 0, 0, 2);
-        uint cnt = 1;
+        uint cnt = 0;
         for (int i = 0; i < 4; ++i) {
-            if (i != pos) {
-                setBits(this->LRU_qs[index], curOrder[pos], 2*cnt, 0, 2);
+            if (curOrder[i] != pos) {
+                setBits(this->LRU_qs[index], curOrder[i], 2*cnt, 0, 2);
                 ++cnt;
             }
         }
+        setBits(this->LRU_qs[index], pos, 6, 0, 2);
     } else {
 
     }
@@ -92,8 +100,9 @@ int BINARY_TREE_Replacer::init() {
 }
 
 int BINARY_TREE_Replacer::doReplace(uint index, ulong tag) {
+    uint idx = 0;
     if (this->ts->way_num == 8) {
-        uint idx = 0;
+        idx = 0;
         if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
         else idx = idx * 2 + 1;
         if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
@@ -106,7 +115,7 @@ int BINARY_TREE_Replacer::doReplace(uint index, ulong tag) {
         curc[0] |= 0x1; // Set valid
         curc[0] &= ~(0x2); // Set clean
     } else if (this->ts->way_num == 4) {
-        uint idx = 0;
+        idx = 0;
         if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
         else idx = idx * 2 + 1;
         if (((this->trees[index]) >> idx) & 1) idx = idx * 2 + 2;
@@ -123,7 +132,7 @@ int BINARY_TREE_Replacer::doReplace(uint index, ulong tag) {
         curc[0] &= ~(0x2); // Set clean       
     }
 
-    return 0;
+    return idx;
 }
 
 int BINARY_TREE_Replacer::doUpdate(uint index, uint pos) {
